@@ -54,3 +54,10 @@ export interface CreateAttachmentPayload {
   customer_id: number;
   file_path: string;
 }
+
+/** Payload for creating multiple attachment records. */
+export interface CreateMultipleAttachmentsPayload {
+  customer_id: number;
+  file_paths: string[];
+}
+

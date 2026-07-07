@@ -57,3 +57,11 @@ export function isImageFile(filePath: string): boolean {
     ext ?? "",
   );
 }
+
+/**
+ * Format count of uploaded files into a readable string in Vietnamese.
+ */
+export function formatFileCount(count: number): string {
+  return `${count} tệp đính kèm`;
+}
+

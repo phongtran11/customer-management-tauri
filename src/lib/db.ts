@@ -40,6 +40,8 @@ const MIGRATION_SQL = `
     created_at TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
   );
 
+  -- Mỗi bản ghi đại diện cho một tệp đính kèm đơn lẻ.
+  -- Khi tải lên nhiều tệp đính kèm cùng lúc, ứng dụng sẽ thực hiện ghi thêm nhiều hàng tương ứng vào bảng này.
   CREATE TABLE IF NOT EXISTS attachments (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,

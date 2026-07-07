@@ -1,8 +1,4 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { open } from "@tauri-apps/plugin-dialog";
 import { copyFile, mkdir, remove, exists } from "@tauri-apps/plugin-fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
@@ -17,8 +13,7 @@ import type { Attachment, SqlExecuteResult } from "@/types";
 // =============================================================================
 
 export const ATTACHMENT_QUERY_KEYS = {
-  forCustomer: (customerId: number) =>
-    ["attachments", customerId] as const,
+  forCustomer: (customerId: number) => ["attachments", customerId] as const,
 } as const;
 
 // =============================================================================
@@ -26,29 +21,31 @@ export const ATTACHMENT_QUERY_KEYS = {
 // =============================================================================
 
 async function fetchAttachmentsByCustomer(
-  customerId: number
+  customerId: number,
 ): Promise<Attachment[]> {
   const db = await getDb();
   return db.select<Attachment[]>(
     "SELECT id, customer_id, file_path, created_at FROM attachments WHERE customer_id = $1 ORDER BY created_at DESC",
-    [customerId]
+    [customerId],
   );
 }
 
 async function insertAttachment(
   customerId: number,
-  filePath: string
+  filePath: string,
 ): Promise<SqlExecuteResult> {
   const db = await getDb();
   return db.execute(
     "INSERT INTO attachments (customer_id, file_path) VALUES ($1, $2)",
-    [customerId, filePath]
+    [customerId, filePath],
   ) as Promise<SqlExecuteResult>;
 }
 
 async function deleteAttachmentRecord(id: number): Promise<SqlExecuteResult> {
   const db = await getDb();
-  return db.execute("DELETE FROM attachments WHERE id = $1", [id]) as Promise<SqlExecuteResult>;
+  return db.execute("DELETE FROM attachments WHERE id = $1", [
+    id,
+  ]) as Promise<SqlExecuteResult>;
 }
 
 // =============================================================================
@@ -121,37 +118,70 @@ export function useAddAttachment(customerId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (): Promise<void> => {
+    mutationFn: async (): Promise<{
+      successCount: number;
+      errors: string[];
+    } | null> => {
       // 1. Open native file picker (images only)
-      // `open` with `multiple: false` returns `string | null`
-      const selected: string | null = await open({
-        multiple: false as const,
+      // `open` with `multiple: true` returns `string[] | null` (or `string | string[] | null`)
+      const selected = await open({
+        multiple: true,
         filters: [
           {
             name: "Images",
             extensions: ["png", "jpg", "jpeg", "gif", "webp", "bmp"],
           },
         ],
-      }) as string | null;
+      });
 
       if (!selected) {
         // User cancelled — not an error
+        return null;
+      }
+
+      const sourcePaths = Array.isArray(selected) ? selected : [selected];
+      const errors: string[] = [];
+      let successCount = 0;
+
+      // 2. Copy the files and insert records sequentially to handle partial failures
+      for (const sourcePath of sourcePaths) {
+        try {
+          const destPath = await copyFileToAppData(sourcePath);
+          await insertAttachment(customerId, destPath);
+          successCount++;
+        } catch (err) {
+          console.error(
+            `[useAddAttachment] Failed to process ${sourcePath}:`,
+            err,
+          );
+          errors.push(getFileName(sourcePath));
+        }
+      }
+
+      return { successCount, errors };
+    },
+    onSuccess: (data) => {
+      if (!data) {
+        // User cancelled dialog
         return;
       }
 
-      const sourcePath: string = selected;
-
-      // 2. Copy the file into the app's data directory
-      const destPath = await copyFileToAppData(sourcePath);
-
-      // 3. Persist only the path in the database
-      await insertAttachment(customerId, destPath);
-    },
-    onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ATTACHMENT_QUERY_KEYS.forCustomer(customerId),
       });
-      toast.success("Đã thêm tệp đính kèm thành công.");
+
+      const { successCount, errors } = data;
+      if (successCount > 0 && errors.length === 0) {
+        toast.success(`Đã thêm ${successCount} tệp đính kèm thành công.`);
+      } else if (successCount > 0 && errors.length > 0) {
+        toast.warning(
+          `Đã thêm thành công ${successCount} tệp. Thất bại ${errors.length} tệp: ${errors.join(", ")}`,
+        );
+      } else if (errors.length > 0) {
+        toast.error(
+          `Không thể thêm tệp đính kèm nào. Thất bại: ${errors.join(", ")}`,
+        );
+      }
     },
     onError: (err: unknown) => {
       const message =

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ImagePlus, Trash2, Image as ImageIcon, Eye } from "lucide-react";
+import { ImagePlus, Trash2, Image as ImageIcon, Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -171,8 +171,17 @@ export function AttachmentManager({ customerId }: AttachmentManagerProps) {
           id="add-attachment-button"
           aria-label="Thêm tệp đính kèm ảnh"
         >
-          <ImagePlus className="mr-1.5 h-4 w-4" aria-hidden="true" />
-          Thêm Ảnh
+          {addMutation.isPending ? (
+            <>
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+              Đang tải...
+            </>
+          ) : (
+            <>
+              <ImagePlus className="mr-1.5 h-4 w-4" aria-hidden="true" />
+              Thêm Ảnh
+            </>
+          )}
         </Button>
       </div>
 

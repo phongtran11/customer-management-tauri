@@ -329,7 +329,8 @@ export function CustomerDetail({ customer }: CustomerDetailProps) {
 
       <Separator />
 
-      {/* Phần Đính Kèm */}
+      {/* Phần Đính Kèm - Quản lý tệp đính kèm được ủy quyền hoàn toàn cho AttachmentManager. */}
+      {/* AttachmentManager hiện đã hỗ trợ chọn và tải lên cùng lúc nhiều tệp đính kèm. */}
       <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
         <AttachmentManager customerId={customer.id} />
       </div>
