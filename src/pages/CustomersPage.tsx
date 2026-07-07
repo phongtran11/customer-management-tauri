@@ -13,43 +13,39 @@ import { CustomerList } from "@/components/CustomerList";
 import { CustomerForm } from "@/components/CustomerForm";
 
 /**
- * Main customers list page.
- *
- * Layout:
- * - Fixed header with app title and "+ New Customer" sheet trigger
- * - Scrollable customer list below
+ * Trang danh sách khách hàng chính.
  */
 export function CustomersPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
-      {/* App Header */}
+      {/* Tiêu đề ứng dụng */}
       <header
         className="flex shrink-0 items-center justify-between border-b border-border bg-card/80 px-6 py-4 backdrop-blur-sm"
         data-tauri-drag-region
       >
         <div>
           <h1 className="text-lg font-bold text-foreground">
-            Customer Management
+            Quản Lý Khách Hàng
           </h1>
           <p className="text-xs text-muted-foreground">
-            Manage your customer records
+            Quản lý hồ sơ thông tin khách hàng
           </p>
         </div>
 
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
-            <Button size="sm" id="new-customer-button" aria-label="Create new customer">
+            <Button size="sm" id="new-customer-button" aria-label="Thêm khách hàng mới">
               <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
-              New Customer
+              Thêm Khách Hàng
             </Button>
           </SheetTrigger>
           <SheetContent className="sm:max-w-md">
             <SheetHeader>
-              <SheetTitle>Add New Customer</SheetTitle>
+              <SheetTitle>Thêm Khách Hàng Mới</SheetTitle>
               <SheetDescription>
-                Fill in the details below to create a new customer record.
+                Nhập thông tin chi tiết dưới đây để tạo hồ sơ khách hàng mới.
               </SheetDescription>
             </SheetHeader>
             <div className="mt-6">
@@ -59,7 +55,7 @@ export function CustomersPage() {
         </Sheet>
       </header>
 
-      {/* Content */}
+      {/* Nội dung danh sách */}
       <main className="flex flex-1 flex-col overflow-hidden px-6 py-4">
         <CustomerList />
       </main>

@@ -172,11 +172,11 @@ export function useCreateCustomer() {
     mutationFn: createCustomer,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: CUSTOMER_QUERY_KEYS.all });
-      toast.success("Customer created successfully.");
+      toast.success("Đã thêm khách hàng thành công.");
     },
     onError: (err: unknown) => {
       const message =
-        err instanceof Error ? err.message : "Failed to create customer";
+        err instanceof Error ? err.message : "Không thể thêm khách hàng";
       toast.error(message);
       console.error("[useCreateCustomer]", err);
     },
@@ -196,11 +196,11 @@ export function useUpdateCustomer() {
       void queryClient.invalidateQueries({
         queryKey: CUSTOMER_QUERY_KEYS.detail(variables.id),
       });
-      toast.success("Customer updated successfully.");
+      toast.success("Đã cập nhật thông tin khách hàng thành công.");
     },
     onError: (err: unknown) => {
       const message =
-        err instanceof Error ? err.message : "Failed to update customer";
+        err instanceof Error ? err.message : "Không thể cập nhật thông tin khách hàng";
       toast.error(message);
       console.error("[useUpdateCustomer]", err);
     },
@@ -217,11 +217,11 @@ export function useDeleteCustomer() {
     mutationFn: deleteCustomer,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: CUSTOMER_QUERY_KEYS.all });
-      toast.success("Customer deleted.");
+      toast.success("Đã xóa khách hàng thành công.");
     },
     onError: (err: unknown) => {
       const message =
-        err instanceof Error ? err.message : "Failed to delete customer";
+        err instanceof Error ? err.message : "Không thể xóa khách hàng";
       toast.error(message);
       console.error("[useDeleteCustomer]", err);
     },

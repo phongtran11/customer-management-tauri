@@ -40,8 +40,8 @@ interface AttachmentCardProps {
 }
 
 /**
- * A smaller, compact thumbnail representation of an attachment.
- * Shows an Eye icon overlay on hover to view, and a Delete button.
+ * Một ô hiển thị ảnh đính kèm thu nhỏ (thumbnail).
+ * Hiển thị lớp phủ biểu tượng Mắt khi di chuột để xem, và nút Xóa.
  */
 function AttachmentCard({
   attachment,
@@ -54,10 +54,10 @@ function AttachmentCard({
   return (
     <div
       className="group relative h-20 w-20 overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/50 hover:shadow-md cursor-pointer shrink-0"
-      aria-label={`Attachment: ${fileName}`}
+      aria-label={`Tệp đính kèm: ${fileName}`}
       onClick={() => onView(attachment)}
     >
-      {/* Image Thumbnail */}
+      {/* Ảnh thu nhỏ */}
       <div className="h-full w-full overflow-hidden bg-muted flex items-center justify-center">
         <img
           src={attachment.assetUrl}
@@ -70,7 +70,7 @@ function AttachmentCard({
             if (placeholder) placeholder.style.display = "flex";
           }}
         />
-        {/* Fallback placeholder */}
+        {/* Trình hiển thị dự phòng nếu lỗi tải ảnh */}
         <div className="hidden h-full w-full items-center justify-center">
           <ImageIcon
             className="h-6 w-6 text-muted-foreground"
@@ -79,12 +79,12 @@ function AttachmentCard({
         </div>
       </div>
 
-      {/* Hover Viewer Overlay */}
+      {/* Lớp phủ xem ảnh */}
       <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 flex items-center justify-center">
         <Eye className="h-5 w-5 text-white" aria-hidden="true" />
       </div>
 
-      {/* Delete Button (stopped propagation so it doesn't open the viewer dialog) */}
+      {/* Nút Xóa tệp (dừng nổi bọt sự kiện để không kích hoạt hộp thoại xem ảnh) */}
       <div
         onClick={(e) => e.stopPropagation()}
         className="absolute right-1 top-1"
@@ -94,7 +94,7 @@ function AttachmentCard({
             <button
               className="rounded-md bg-destructive/90 p-1 text-destructive-foreground opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 hover:bg-destructive"
               disabled={isDeleting}
-              aria-label={`Delete attachment ${fileName}`}
+              aria-label={`Xóa tệp đính kèm ${fileName}`}
               id={`delete-attachment-${attachment.id}`}
             >
               <Trash2 className="h-3 w-3" aria-hidden="true" />
@@ -102,21 +102,20 @@ function AttachmentCard({
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Attachment</AlertDialogTitle>
+              <AlertDialogTitle>Xóa Tệp Đính Kèm</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete <strong>{fileName}</strong>?
-                This will permanently remove the file from disk and cannot be
-                undone.
+                Bạn có chắc chắn muốn xóa tệp đính kèm <strong>{fileName}</strong>?
+                Thao tác này sẽ xóa vĩnh viễn tệp tin khỏi ổ đĩa và không thể hoàn tác.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>Hủy</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={() => onDelete(attachment.id, attachment.file_path)}
                 id={`confirm-delete-attachment-${attachment.id}`}
               >
-                Delete
+                Xóa
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -135,12 +134,7 @@ interface AttachmentManagerProps {
 }
 
 /**
- * Displays and manages image attachments for a customer.
- *
- * - Shows a scrollable gallery of smaller image thumbnails (fixed height container).
- * - Clicking a thumbnail opens the full-screen image viewer.
- * - "Add Image" opens the OS native file picker.
- * - Each image can be deleted.
+ * Trình quản lý hình ảnh đính kèm của khách hàng.
  */
 export function AttachmentManager({ customerId }: AttachmentManagerProps) {
   const { data: attachments, isLoading, isError } = useAttachments(customerId);
@@ -159,10 +153,10 @@ export function AttachmentManager({ customerId }: AttachmentManagerProps) {
 
   return (
     <section aria-label="Attachments" className="space-y-4">
-      {/* Header */}
+      {/* Tiêu đề & Nút Thêm */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">
-          Attachments
+          Tệp Đính Kèm
           {attachments && attachments.length > 0 && (
             <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
               {attachments.length}
@@ -175,17 +169,17 @@ export function AttachmentManager({ customerId }: AttachmentManagerProps) {
           onClick={handleAdd}
           disabled={addMutation.isPending}
           id="add-attachment-button"
-          aria-label="Add image attachment"
+          aria-label="Thêm tệp đính kèm ảnh"
         >
           <ImagePlus className="mr-1.5 h-4 w-4" aria-hidden="true" />
-          Add Image
+          Thêm Ảnh
         </Button>
       </div>
 
-      {/* Scrollable Container with Fixed Height */}
+      {/* Vùng cuộn chứa tệp tin đính kèm */}
       <div className="rounded-lg border border-border bg-muted/20">
         <ScrollArea className="h-44 w-full p-3">
-          {/* Loading State */}
+          {/* Trạng thái tải danh sách */}
           {isLoading && (
             <div className="flex flex-wrap gap-2">
               {[1, 2, 3, 4, 5].map((i) => (
@@ -194,14 +188,14 @@ export function AttachmentManager({ customerId }: AttachmentManagerProps) {
             </div>
           )}
 
-          {/* Error State */}
+          {/* Trạng thái lỗi */}
           {isError && (
             <p className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              Failed to load attachments. Please try again.
+              Lỗi tải tệp đính kèm. Vui lòng thử lại.
             </p>
           )}
 
-          {/* Empty State */}
+          {/* Trạng thái trống */}
           {!isLoading && !isError && attachments?.length === 0 && (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <ImageIcon
@@ -209,15 +203,15 @@ export function AttachmentManager({ customerId }: AttachmentManagerProps) {
                 aria-hidden="true"
               />
               <p className="text-sm text-muted-foreground font-medium">
-                No attachments yet.
+                Chưa có tệp đính kèm nào.
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Click &ldquo;Add Image&rdquo; to attach a photo.
+                Nhấp vào nút &ldquo;Thêm Ảnh&rdquo; để đính kèm ảnh của khách hàng.
               </p>
             </div>
           )}
 
-          {/* Compact Gallery Grid */}
+          {/* Thư viện ảnh thu nhỏ */}
           {!isLoading && attachments && attachments.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {attachments.map((att) => (
@@ -234,7 +228,7 @@ export function AttachmentManager({ customerId }: AttachmentManagerProps) {
         </ScrollArea>
       </div>
 
-      {/* Image Viewer Lightbox Dialog */}
+      {/* Trình xem ảnh chi tiết (Lightbox Dialog) */}
       <Dialog
         open={!!viewingAttachment}
         onOpenChange={(open) => !open && setViewingAttachment(null)}
@@ -248,7 +242,7 @@ export function AttachmentManager({ customerId }: AttachmentManagerProps) {
             </DialogTitle>
             {viewingAttachment && (
               <p className="text-[10px] text-zinc-400 mt-0.5">
-                Uploaded {formatDateTime(viewingAttachment.created_at)}
+                Đã tải lên vào {formatDateTime(viewingAttachment.created_at)}
               </p>
             )}
           </DialogHeader>

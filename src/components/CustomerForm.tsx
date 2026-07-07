@@ -21,16 +21,16 @@ import { useCreateCustomer } from "@/hooks/useCustomers";
 const createCustomerSchema = z.object({
   name: z
     .string()
-    .min(2, "Name must be at least 2 characters.")
-    .max(100, "Name must be at most 100 characters.")
+    .min(2, "Họ và tên phải có ít nhất 2 ký tự.")
+    .max(100, "Họ và tên tối đa 100 ký tự.")
     .trim(),
   phone: z
     .string()
-    .min(7, "Phone number must be at least 7 digits.")
-    .max(20, "Phone number is too long.")
+    .min(7, "Số điện thoại phải có ít nhất 7 chữ số.")
+    .max(20, "Số điện thoại quá dài.")
     .regex(
       /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]*$/,
-      "Please enter a valid phone number."
+      "Vui lòng nhập số điện thoại hợp lệ."
     )
     .trim(),
 });
@@ -42,7 +42,7 @@ type CreateCustomerFormValues = z.infer<typeof createCustomerSchema>;
 // =============================================================================
 
 interface CustomerFormProps {
-  /** Called when the customer is successfully created. */
+  /** Được gọi khi khách hàng được tạo thành công. */
   onSuccess?: () => void;
 }
 
@@ -51,9 +51,7 @@ interface CustomerFormProps {
 // =============================================================================
 
 /**
- * Form for creating a new customer.
- * Uses React Hook Form + Zod validation.
- * Submits via the useCreateCustomer mutation hook.
+ * Biểu mẫu tạo mới thông tin khách hàng.
  */
 export function CustomerForm({ onSuccess }: CustomerFormProps) {
   const { mutateAsync, isPending } = useCreateCustomer();
@@ -72,7 +70,7 @@ export function CustomerForm({ onSuccess }: CustomerFormProps) {
       form.reset();
       onSuccess?.();
     } catch {
-      // Error is handled inside the mutation hook (toast shown there)
+      // Lỗi được xử lý bởi hook mutation (đưa ra thông báo Toast)
     }
   }
 
@@ -82,19 +80,19 @@ export function CustomerForm({ onSuccess }: CustomerFormProps) {
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-5"
         id="create-customer-form"
-        aria-label="Create new customer form"
+        aria-label="Biểu mẫu thêm khách hàng mới"
       >
-        {/* Name Field */}
+        {/* Trường Họ và Tên */}
         <FormField
           control={form.control}
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Full Name</FormLabel>
+              <FormLabel>Họ và Tên</FormLabel>
               <FormControl>
                 <Input
                   id="customer-name"
-                  placeholder="e.g. John Smith"
+                  placeholder="Ví dụ: Nguyễn Văn A"
                   autoFocus
                   autoComplete="off"
                   {...field}
@@ -105,17 +103,17 @@ export function CustomerForm({ onSuccess }: CustomerFormProps) {
           )}
         />
 
-        {/* Phone Field */}
+        {/* Trường Số Điện Thoại */}
         <FormField
           control={form.control}
           name="phone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Phone Number</FormLabel>
+              <FormLabel>Số Điện Thoại</FormLabel>
               <FormControl>
                 <Input
                   id="customer-phone"
-                  placeholder="e.g. +1 (555) 000-1234"
+                  placeholder="Ví dụ: 0901234567"
                   type="tel"
                   autoComplete="off"
                   {...field}
@@ -126,7 +124,7 @@ export function CustomerForm({ onSuccess }: CustomerFormProps) {
           )}
         />
 
-        {/* Submit Button */}
+        {/* Nút gửi dữ liệu */}
         <Button
           type="submit"
           id="submit-create-customer"
@@ -136,12 +134,12 @@ export function CustomerForm({ onSuccess }: CustomerFormProps) {
           {isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-              Creating…
+              Đang tạo…
             </>
           ) : (
             <>
               <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
-              Create Customer
+              Thêm Khách Hàng
             </>
           )}
         </Button>

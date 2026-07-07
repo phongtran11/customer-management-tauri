@@ -6,10 +6,7 @@ import { CustomerDetail } from "@/components/CustomerDetail";
 import { useCustomer } from "@/hooks/useCustomers";
 
 /**
- * Customer detail page.
- *
- * Reads the `:id` route parameter, fetches the customer, and renders
- * the <CustomerDetail> component when data is available.
+ * Trang chi tiết khách hàng.
  */
 export function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -25,18 +22,18 @@ export function CustomerDetailPage() {
     error,
   } = useCustomer(isValidId ? customerId : 0);
 
-  // Invalid route param
+  // ID không hợp lệ
   if (!isValidId) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 p-6">
-        <p className="text-sm text-destructive">Invalid customer ID.</p>
+        <p className="text-sm text-destructive">Mã ID khách hàng không hợp lệ.</p>
         <Button
           variant="outline"
           onClick={() => navigate("/")}
           id="back-from-invalid"
         >
           <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-          Back to List
+          Quay lại danh sách
         </Button>
       </div>
     );
@@ -44,21 +41,21 @@ export function CustomerDetailPage() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
-      {/* App Sub-header Bar */}
+      {/* Thanh công cụ phụ */}
       <header
         className="flex shrink-0 items-center border-b border-border bg-card/80 px-6 py-3 backdrop-blur-sm"
         data-tauri-drag-region
       >
         <span className="text-sm font-semibold text-foreground">
-          Customer Management
+          Quản Lý Khách Hàng
         </span>
       </header>
 
-      {/* Scrollable Content */}
+      {/* Nội dung chi tiết */}
       <main className="flex-1 overflow-y-auto px-6 py-6">
-        {/* Loading State */}
+        {/* Trạng thái tải dữ liệu */}
         {isLoading && (
-          <div className="space-y-6" aria-busy="true" aria-label="Loading customer details">
+          <div className="space-y-6" aria-busy="true" aria-label="Đang tải chi tiết khách hàng">
             <div className="flex items-center gap-3">
               <Skeleton className="h-9 w-9 rounded-md" />
               <div className="space-y-1.5">
@@ -71,7 +68,7 @@ export function CustomerDetailPage() {
           </div>
         )}
 
-        {/* Error State */}
+        {/* Trạng thái lỗi */}
         {isError && !isLoading && (
           <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
             <div
@@ -80,7 +77,7 @@ export function CustomerDetailPage() {
             >
               {error instanceof Error
                 ? error.message
-                : "Failed to load customer details."}
+                : "Không thể tải thông tin chi tiết khách hàng."}
             </div>
             <Button
               variant="outline"
@@ -88,28 +85,28 @@ export function CustomerDetailPage() {
               id="back-from-error"
             >
               <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-              Back to List
+              Quay lại danh sách
             </Button>
           </div>
         )}
 
-        {/* Not Found */}
+        {/* Không tìm thấy bản ghi */}
         {!isLoading && !isError && !customer && (
           <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
-            <p className="text-sm text-muted-foreground">Customer not found.</p>
+            <p className="text-sm text-muted-foreground">Không tìm thấy thông tin khách hàng.</p>
             <Button
               variant="outline"
               onClick={() => navigate("/")}
               id="back-from-not-found"
             >
               <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-              Back to List
+              Quay lại danh sách
             </Button>
           </div>
         )}
 
-        {/* Detail View */}
+        {/* Hiển thị chi tiết */}
         {!isLoading && !isError && customer && (
           <CustomerDetail customer={customer} />
         )}

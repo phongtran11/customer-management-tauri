@@ -151,11 +151,11 @@ export function useAddAttachment(customerId: number) {
       void queryClient.invalidateQueries({
         queryKey: ATTACHMENT_QUERY_KEYS.forCustomer(customerId),
       });
-      toast.success("Attachment added.");
+      toast.success("Đã thêm tệp đính kèm thành công.");
     },
     onError: (err: unknown) => {
       const message =
-        err instanceof Error ? err.message : "Failed to add attachment";
+        err instanceof Error ? err.message : "Không thể đính kèm tệp tin";
       toast.error(message);
       console.error("[useAddAttachment]", err);
     },
@@ -193,11 +193,11 @@ export function useDeleteAttachment(customerId: number) {
       void queryClient.invalidateQueries({
         queryKey: ATTACHMENT_QUERY_KEYS.forCustomer(customerId),
       });
-      toast.success("Attachment removed.");
+      toast.success("Đã xóa tệp đính kèm thành công.");
     },
     onError: (err: unknown) => {
       const message =
-        err instanceof Error ? err.message : "Failed to remove attachment";
+        err instanceof Error ? err.message : "Không thể xóa tệp đính kèm";
       toast.error(message);
       console.error("[useDeleteAttachment]", err);
     },
