@@ -91,7 +91,7 @@ jobs:
 
       # ── macOS: Import signing certificate ───────────────────────────────────
       - name: Import macOS signing certificate
-        if: matrix.platform == 'macos-latest' && env.APPLE_CERTIFICATE != ''
+        if: matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE != ''
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -110,7 +110,7 @@ jobs:
 
       # ── Windows: Import signing certificate ─────────────────────────────────
       - name: Import Windows signing certificate
-        if: matrix.platform == 'windows-latest' && env.WINDOWS_CERTIFICATE != ''
+        if: matrix.platform == 'windows-latest' && secrets.WINDOWS_CERTIFICATE != ''
         env:
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
@@ -119,6 +119,25 @@ jobs:
           $certBytes = [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE)
           $certPath = Join-Path $env:RUNNER_TEMP "certificate.pfx"
           [IO.File]::WriteAllBytes($certPath, $certBytes)
+
+      # ── Export macOS signing env vars only if secrets exist ─────────────────
+      - name: Export macOS signing env vars
+        if: matrix.platform == 'macos-latest' && secrets.APPLE_CERTIFICATE != ''
+        run: |
+          echo "APPLE_CERTIFICATE=${{ secrets.APPLE_CERTIFICATE }}" >> $GITHUB_ENV
+          echo "APPLE_CERTIFICATE_PASSWORD=${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" >> $GITHUB_ENV
+          echo "APPLE_SIGNING_IDENTITY=${{ secrets.APPLE_SIGNING_IDENTITY }}" >> $GITHUB_ENV
+          echo "APPLE_ID=${{ secrets.APPLE_ID }}" >> $GITHUB_ENV
+          echo "APPLE_PASSWORD=${{ secrets.APPLE_PASSWORD }}" >> $GITHUB_ENV
+          echo "APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}" >> $GITHUB_ENV
+
+      # ── Export Windows signing env vars only if secrets exist ───────────────
+      - name: Export Windows signing env vars
+        if: matrix.platform == 'windows-latest' && secrets.WINDOWS_CERTIFICATE != ''
+        shell: bash
+        run: |
+          echo "TAURI_SIGNING_PRIVATE_KEY=${{ secrets.WINDOWS_CERTIFICATE }}" >> $GITHUB_ENV
+          echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" >> $GITHUB_ENV
 
       # ── Install npm dependencies ─────────────────────────────────────────────
       - name: Install frontend dependencies
@@ -129,16 +148,6 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS signing (only active when secrets exist)
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          # Windows signing (only active when secrets exist)
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.WINDOWS_CERTIFICATE }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Customer Management ${{ github.ref_name }}'
