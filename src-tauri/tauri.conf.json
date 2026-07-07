@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Quản Lý Khách Hàng",
+  "productName": "quan ly khach hang",
   "version": "0.1.2",
   "identifier": "com.customermgmt.app",
   "build": {
@@ -21,16 +21,14 @@
         "decorations": true,
         "transparent": false,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": true
       }
     ],
     "security": {
       "csp": "default-src 'self' ipc: http://ipc.localhost; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost https://asset.localhost; media-src 'self' asset: http://asset.localhost https://asset.localhost",
       "assetProtocol": {
         "enable": true,
-        "scope": [
-          "$APPDATA/**"
-        ]
+        "scope": ["$APPDATA/**"]
       }
     }
   },
@@ -70,9 +68,7 @@
         "language": "en-US"
       },
       "nsis": {
-        "languages": [
-          "English"
-        ],
+        "languages": ["English"],
         "displayLanguageSelector": false,
         "installMode": "currentUser"
       }
