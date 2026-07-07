@@ -1,0 +1,98 @@
+# CI Check Workflow
+#
+# Triggered by: Pull requests to main/develop, and pushes to main/develop
+# Purpose: Fast feedback on TypeScript errors and Rust compile errors
+#          WITHOUT doing a full production build
+#
+# Checks performed:
+#   - TypeScript type checking (npx tsc --noEmit)
+#   - Vite build (frontend only)
+#   - Rust compile check (cargo check — faster than cargo build)
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - '.github/RELEASE_TEMPLATE.md'
+  pull_request:
+    branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ─── Frontend checks ────────────────────────────────────────────────────────
+  check-frontend:
+    name: Frontend (TypeScript + Vite)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Vite build
+        run: npm run build
+
+  # ─── Rust checks ─────────────────────────────────────────────────────────────
+  check-rust-macos:
+    name: Rust check (macOS)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Cargo check (Apple Silicon)
+        run: cargo check --target aarch64-apple-darwin
+        working-directory: src-tauri
+
+      - name: Cargo check (Intel)
+        run: cargo check --target x86_64-apple-darwin
+        working-directory: src-tauri
+
+  check-rust-windows:
+    name: Rust check (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Cargo check (Windows x64)
+        run: cargo check --target x86_64-pc-windows-msvc
+        working-directory: src-tauri

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  macOS Hardened Runtime Entitlements
+  Required for notarization when distributing outside the Mac App Store.
+
+  References:
+    https://developer.apple.com/documentation/security/hardened_runtime
+    https://tauri.app/distribute/sign/macos/
+-->
+<plist version="1.0">
+  <dict>
+    <!-- Allow the app to execute arbitrary code (required by some Rust/WebView operations) -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+
+    <!-- Allow unsigned executable memory (needed by the WebView JS engine) -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+
+    <!-- Allow loading of dylibs with invalid signatures (Tauri internal use) -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+
+    <!-- Network: allow outbound connections (e.g. future update checks) -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+
+    <!-- File system: read access for user-selected files (via dialog picker) -->
+    <key>com.apple.security.files.user-selected.read-only</key>
+    <true/>
+
+    <!-- File system: read/write access to app data directory -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <false/>
+
+    <!-- File system: Downloads folder access (if needed in future) -->
+    <key>com.apple.security.files.downloads.read-only</key>
+    <false/>
+  </dict>
+</plist>

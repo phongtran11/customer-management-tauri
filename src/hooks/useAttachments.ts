@@ -1,0 +1,205 @@
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { open } from "@tauri-apps/plugin-dialog";
+import { copyFile, mkdir, remove, exists } from "@tauri-apps/plugin-fs";
+import { appDataDir, join } from "@tauri-apps/api/path";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { toast } from "sonner";
+import { getDb } from "@/lib/db";
+import { getFileName } from "@/lib/utils";
+import type { Attachment, SqlExecuteResult } from "@/types";
+
+// =============================================================================
+// Query Keys
+// =============================================================================
+
+export const ATTACHMENT_QUERY_KEYS = {
+  forCustomer: (customerId: number) =>
+    ["attachments", customerId] as const,
+} as const;
+
+// =============================================================================
+// Data Access Functions
+// =============================================================================
+
+async function fetchAttachmentsByCustomer(
+  customerId: number
+): Promise<Attachment[]> {
+  const db = await getDb();
+  return db.select<Attachment[]>(
+    "SELECT id, customer_id, file_path, created_at FROM attachments WHERE customer_id = $1 ORDER BY created_at DESC",
+    [customerId]
+  );
+}
+
+async function insertAttachment(
+  customerId: number,
+  filePath: string
+): Promise<SqlExecuteResult> {
+  const db = await getDb();
+  return db.execute(
+    "INSERT INTO attachments (customer_id, file_path) VALUES ($1, $2)",
+    [customerId, filePath]
+  ) as Promise<SqlExecuteResult>;
+}
+
+async function deleteAttachmentRecord(id: number): Promise<SqlExecuteResult> {
+  const db = await getDb();
+  return db.execute("DELETE FROM attachments WHERE id = $1", [id]) as Promise<SqlExecuteResult>;
+}
+
+// =============================================================================
+// File System Helpers
+// =============================================================================
+
+/**
+ * Returns the absolute path to the attachments subdirectory inside appDataDir.
+ * Creates the directory if it does not yet exist.
+ */
+async function ensureAttachmentsDir(): Promise<string> {
+  const dataDir = await appDataDir();
+  const attachmentsDir = await join(dataDir, "attachments");
+
+  const dirExists = await exists(attachmentsDir);
+  if (!dirExists) {
+    await mkdir(attachmentsDir, { recursive: true });
+  }
+
+  return attachmentsDir;
+}
+
+/**
+ * Copies a source file into the attachments directory with a unique filename
+ * to avoid collisions (prepends a timestamp).
+ *
+ * @returns The destination path inside appDataDir.
+ */
+async function copyFileToAppData(sourcePath: string): Promise<string> {
+  const attachmentsDir = await ensureAttachmentsDir();
+  const originalName = getFileName(sourcePath);
+  const timestamp = Date.now();
+  const destFileName = `${timestamp}_${originalName}`;
+  const destPath = await join(attachmentsDir, destFileName);
+
+  await copyFile(sourcePath, destPath);
+  return destPath;
+}
+
+// =============================================================================
+// React Query Hooks
+// =============================================================================
+
+/**
+ * Fetches all attachments for a given customer.
+ * Converts file paths to asset URLs for rendering in <img> tags.
+ */
+export function useAttachments(customerId: number) {
+  return useQuery({
+    queryKey: ATTACHMENT_QUERY_KEYS.forCustomer(customerId),
+    queryFn: () => fetchAttachmentsByCustomer(customerId),
+    enabled: customerId > 0,
+    staleTime: 1000 * 30,
+    select: (data) =>
+      data.map((att) => ({
+        ...att,
+        assetUrl: convertFileSrc(att.file_path),
+      })),
+  });
+}
+
+/** An attachment with a resolved asset URL for displaying images. */
+export type AttachmentWithUrl = Attachment & { assetUrl: string };
+
+/**
+ * Mutation: opens the OS image picker, copies the selected file into appDataDir,
+ * and stores the local path in the database.
+ */
+export function useAddAttachment(customerId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (): Promise<void> => {
+      // 1. Open native file picker (images only)
+      // `open` with `multiple: false` returns `string | null`
+      const selected: string | null = await open({
+        multiple: false as const,
+        filters: [
+          {
+            name: "Images",
+            extensions: ["png", "jpg", "jpeg", "gif", "webp", "bmp"],
+          },
+        ],
+      }) as string | null;
+
+      if (!selected) {
+        // User cancelled — not an error
+        return;
+      }
+
+      const sourcePath: string = selected;
+
+      // 2. Copy the file into the app's data directory
+      const destPath = await copyFileToAppData(sourcePath);
+
+      // 3. Persist only the path in the database
+      await insertAttachment(customerId, destPath);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ATTACHMENT_QUERY_KEYS.forCustomer(customerId),
+      });
+      toast.success("Attachment added.");
+    },
+    onError: (err: unknown) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to add attachment";
+      toast.error(message);
+      console.error("[useAddAttachment]", err);
+    },
+  });
+}
+
+/**
+ * Mutation: deletes an attachment record from the DB and removes the file from disk.
+ */
+export function useDeleteAttachment(customerId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      filePath,
+    }: {
+      id: number;
+      filePath: string;
+    }): Promise<void> => {
+      // 1. Remove the DB record first
+      await deleteAttachmentRecord(id);
+
+      // 2. Remove the file from disk (best-effort — don't fail if already gone)
+      try {
+        const fileExists = await exists(filePath);
+        if (fileExists) {
+          await remove(filePath);
+        }
+      } catch (fsErr) {
+        console.warn("[useDeleteAttachment] Could not remove file:", fsErr);
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ATTACHMENT_QUERY_KEYS.forCustomer(customerId),
+      });
+      toast.success("Attachment removed.");
+    },
+    onError: (err: unknown) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to remove attachment";
+      toast.error(message);
+      console.error("[useDeleteAttachment]", err);
+    },
+  });
+}
