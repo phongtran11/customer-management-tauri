@@ -1,5 +1,14 @@
-import { useState } from "react";
-import { ImagePlus, Trash2, Image as ImageIcon, Eye, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useDropzone } from "react-dropzone";
+import {
+  ImagePlus,
+  Trash2,
+  Image as ImageIcon,
+  Eye,
+  Loader2,
+  UploadCloud,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,13 +26,15 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
   useAttachments,
-  useAddAttachment,
   useDeleteAttachment,
+  useUploadAttachments,
   type AttachmentWithUrl,
 } from "@/hooks/useAttachments";
 import { formatDateTime, getFileName } from "@/lib/utils";
@@ -104,8 +115,9 @@ function AttachmentCard({
             <AlertDialogHeader>
               <AlertDialogTitle>Xóa Tệp Đính Kèm</AlertDialogTitle>
               <AlertDialogDescription>
-                Bạn có chắc chắn muốn xóa tệp đính kèm <strong>{fileName}</strong>?
-                Thao tác này sẽ xóa vĩnh viễn tệp tin khỏi ổ đĩa và không thể hoàn tác.
+                Bạn có chắc chắn muốn xóa tệp đính kèm{" "}
+                <strong>{fileName}</strong>? Thao tác này sẽ xóa vĩnh viễn tệp
+                tin khỏi ổ đĩa và không thể hoàn tác.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -126,6 +138,218 @@ function AttachmentCard({
 }
 
 // =============================================================================
+// Upload Modal Component
+// =============================================================================
+
+interface UploadModalProps {
+  customerId: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+interface PreviewFile extends File {
+  preview: string;
+}
+
+function UploadModal({ customerId, open, onOpenChange }: UploadModalProps) {
+  const [files, setFiles] = useState<PreviewFile[]>([]);
+  const uploadMutation = useUploadAttachments(customerId);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: {
+      "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"],
+    },
+    multiple: true,
+    onDrop: (acceptedFiles) => {
+      const newFiles = acceptedFiles.map((file) =>
+        Object.assign(file, {
+          preview: URL.createObjectURL(file),
+        }),
+      ) as PreviewFile[];
+      setFiles((prev) => [...prev, ...newFiles]);
+    },
+  });
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const pastedFiles: PreviewFile[] = [];
+    let hasImage = false;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith("image/")) {
+        hasImage = true;
+        const file = item.getAsFile();
+        if (file) {
+          const previewFile = Object.assign(file, {
+            preview: URL.createObjectURL(file),
+          }) as PreviewFile;
+          pastedFiles.push(previewFile);
+        }
+      }
+    }
+
+    if (hasImage) {
+      e.preventDefault();
+      setFiles((prev) => [...prev, ...pastedFiles]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => {
+      const updated = [...prev];
+      const removed = updated.splice(index, 1)[0];
+      if (removed?.preview) {
+        URL.revokeObjectURL(removed.preview);
+      }
+      return updated;
+    });
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      files.forEach((file) => URL.revokeObjectURL(file.preview));
+      setFiles([]);
+    }
+    onOpenChange(isOpen);
+  };
+
+  const handleUpload = () => {
+    if (files.length === 0) return;
+    uploadMutation.mutate(files, {
+      onSuccess: () => {
+        handleOpenChange(false);
+      },
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      files.forEach((file) => URL.revokeObjectURL(file.preview));
+    };
+  }, [files]);
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        className="max-w-xl bg-background border border-border shadow-2xl p-6 rounded-xl focus:outline-none"
+        onPaste={handlePaste}
+      >
+        <DialogHeader className="mb-4">
+          <DialogTitle className="text-lg font-bold text-foreground">
+            Tải lên tài liệu đính kèm
+          </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            Kéo thả ảnh, nhấp để chọn tệp hoặc dán trực tiếp (Ctrl+V/Cmd+V) từ
+            bộ nhớ tạm.
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Dropzone Area */}
+        <div
+          {...getRootProps()}
+          className={`flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 cursor-pointer transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary ${
+            isDragActive
+              ? "border-primary bg-primary/5"
+              : "border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/10"
+          }`}
+          tabIndex={0}
+        >
+          <input {...getInputProps()} />
+          <UploadCloud className="h-10 w-10 text-muted-foreground mb-3" />
+          <p className="text-sm font-medium text-foreground text-center">
+            {isDragActive
+              ? "Thả các tệp tin vào đây..."
+              : "Kéo & thả ảnh vào đây, hoặc click để chọn ảnh"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1 text-center">
+            Hỗ trợ Ctrl+V / Cmd+V để dán trực tiếp hình ảnh
+          </p>
+        </div>
+
+        {/* Preview Area */}
+        {files.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-foreground">
+                Danh sách hàng đợi ({files.length})
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  files.forEach((file) => URL.revokeObjectURL(file.preview));
+                  setFiles([]);
+                }}
+                className="text-xs text-destructive hover:underline"
+              >
+                Xóa tất cả
+              </button>
+            </div>
+            <div className="grid grid-cols-4 gap-3 max-h-48 overflow-y-auto p-1 border border-border/50 rounded-lg bg-muted/5">
+              {files.map((file, idx) => (
+                <div
+                  key={`${file.name}-${idx}`}
+                  className="group relative h-20 w-full overflow-hidden rounded-md border border-border bg-muted flex items-center justify-center"
+                >
+                  <img
+                    src={file.preview}
+                    alt={file.name}
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={() => removeFile(idx)}
+                      className="rounded-full bg-destructive p-1.5 text-white hover:bg-destructive/90 transition-colors"
+                      aria-label="Xóa ảnh khỏi danh sách chờ"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-1 py-0.5 text-[8px] text-white truncate text-center">
+                    {file.name}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Footer Actions */}
+        <DialogFooter className="flex items-center justify-end gap-2 mt-6 border-t border-border pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => handleOpenChange(false)}
+            disabled={uploadMutation.isPending}
+          >
+            Hủy
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleUpload}
+            disabled={files.length === 0 || uploadMutation.isPending}
+          >
+            {uploadMutation.isPending ? (
+              <>
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                Đang lưu...
+              </>
+            ) : (
+              `Lưu ${files.length} ảnh`
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// =============================================================================
 // Main Component
 // =============================================================================
 
@@ -138,13 +362,13 @@ interface AttachmentManagerProps {
  */
 export function AttachmentManager({ customerId }: AttachmentManagerProps) {
   const { data: attachments, isLoading, isError } = useAttachments(customerId);
-  const addMutation = useAddAttachment(customerId);
   const deleteMutation = useDeleteAttachment(customerId);
   const [viewingAttachment, setViewingAttachment] =
     useState<AttachmentWithUrl | null>(null);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
 
   const handleAdd = () => {
-    addMutation.mutate();
+    setIsUploadOpen(true);
   };
 
   const handleDelete = (id: number, filePath: string) => {
@@ -167,21 +391,11 @@ export function AttachmentManager({ customerId }: AttachmentManagerProps) {
           size="sm"
           variant="outline"
           onClick={handleAdd}
-          disabled={addMutation.isPending}
           id="add-attachment-button"
           aria-label="Thêm tệp đính kèm ảnh"
         >
-          {addMutation.isPending ? (
-            <>
-              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
-              Đang tải...
-            </>
-          ) : (
-            <>
-              <ImagePlus className="mr-1.5 h-4 w-4" aria-hidden="true" />
-              Thêm Ảnh
-            </>
-          )}
+          <ImagePlus className="mr-1.5 h-4 w-4" aria-hidden="true" />
+          Thêm Ảnh
         </Button>
       </div>
 
@@ -215,7 +429,8 @@ export function AttachmentManager({ customerId }: AttachmentManagerProps) {
                 Chưa có tệp đính kèm nào.
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Nhấp vào nút &ldquo;Thêm Ảnh&rdquo; để đính kèm ảnh của khách hàng.
+                Nhấp vào nút &ldquo;Thêm Ảnh&rdquo; để đính kèm ảnh của khách
+                hàng.
               </p>
             </div>
           )}
@@ -266,6 +481,13 @@ export function AttachmentManager({ customerId }: AttachmentManagerProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Tải Lên Tệp Đính Kèm */}
+      <UploadModal
+        customerId={customerId}
+        open={isUploadOpen}
+        onOpenChange={setIsUploadOpen}
+      />
     </section>
   );
 }

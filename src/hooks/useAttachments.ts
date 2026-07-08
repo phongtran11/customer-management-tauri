@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { open } from "@tauri-apps/plugin-dialog";
-import { copyFile, mkdir, remove, exists } from "@tauri-apps/plugin-fs";
+import { copyFile, mkdir, remove, exists, writeFile } from "@tauri-apps/plugin-fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { toast } from "sonner";
@@ -233,3 +233,72 @@ export function useDeleteAttachment(customerId: number) {
     },
   });
 }
+
+/**
+ * Mutation: takes an array of standard Web File objects, writes them to Tauri's local files,
+ * and inserts attachment database records.
+ */
+export function useUploadAttachments(customerId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (
+      files: File[]
+    ): Promise<{ successCount: number; errors: string[] }> => {
+      const attachmentsDir = await ensureAttachmentsDir();
+      const errors: string[] = [];
+      let successCount = 0;
+
+      for (const file of files) {
+        try {
+          const timestamp = Date.now();
+          const safeName = file.name.replace(/\s+/g, "_");
+          const destFileName = `${timestamp}_${safeName}`;
+          const destPath = await join(attachmentsDir, destFileName);
+
+          // Read File as array buffer and convert to Uint8Array for plugin-fs
+          const arrayBuffer = await file.arrayBuffer();
+          const uint8Array = new Uint8Array(arrayBuffer);
+          await writeFile(destPath, uint8Array);
+
+          // Save attachment record in the SQLite database
+          await insertAttachment(customerId, destPath);
+          successCount++;
+        } catch (err) {
+          console.error(
+            `[useUploadAttachments] Failed to process ${file.name}:`,
+            err
+          );
+          errors.push(file.name);
+        }
+      }
+
+      return { successCount, errors };
+    },
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({
+        queryKey: ATTACHMENT_QUERY_KEYS.forCustomer(customerId),
+      });
+
+      const { successCount, errors } = data;
+      if (successCount > 0 && errors.length === 0) {
+        toast.success(`Đã thêm ${successCount} tệp đính kèm thành công.`);
+      } else if (successCount > 0 && errors.length > 0) {
+        toast.warning(
+          `Đã thêm thành công ${successCount} tệp. Thất bại ${errors.length} tệp: ${errors.join(", ")}`
+        );
+      } else if (errors.length > 0) {
+        toast.error(
+          `Không thể thêm tệp đính kèm nào. Thất bại: ${errors.join(", ")}`
+        );
+      }
+    },
+    onError: (err: unknown) => {
+      const message =
+        err instanceof Error ? err.message : "Không thể đính kèm tệp tin";
+      toast.error(message);
+      console.error("[useUploadAttachments]", err);
+    },
+  });
+}
+
